@@ -136,7 +136,7 @@ func run() error {
 	fmt.Println()
 
 	ext := findExtention(highestQuality.MimeType)
-	dest := fmt.Sprintf("%s.%s", pmr.Title.SimpleText, ext)
+	dest := fmt.Sprintf("%s.%s", strings.ReplaceAll(pmr.Title.SimpleText, "/", "-"), ext)
 
 	if err := godl.Download(highestQuality.URL, dest, true); err != nil {
 		return err
