@@ -1,3 +1,3 @@
-module github.com/dqn/youtube-video-downloader
+module github.com/dqn/youtubedl
 
 go 1.14
