@@ -17,17 +17,23 @@ type PlayerResponse struct {
 	Microformat   Microformat   `json:"microformat"`
 }
 
+type Format struct {
+	URL      string `json:"url"`
+	MimeType string `json:"mimeType"`
+	Width    int    `json:"width"`
+	Height   int    `json:"height"`
+	Quality  string `json:"quality"`
+	Bitrate  int    `json:"bitrate"`
+}
+
 type AdaptiveFormat struct {
-	URL            string `json:"url"`
-	MimeType       string `json:"mimeType"`
-	Width          int    `json:"width"`
-	Height         int    `json:"height"`
-	Quality        string `json:"quality"`
-	Fps            int    `json:"fps"`
-	AverageBitrate int    `json:"averageBitrate"`
+	Format
+	Fps            int `json:"fps"`
+	AverageBitrate int `json:"averageBitrate"`
 }
 
 type StreamingData struct {
+	Formats         []Format         `json:"formats"`
 	AdaptiveFormats []AdaptiveFormat `json:"adaptiveFormats"`
 }
 
@@ -78,7 +84,7 @@ func getVideoInfo(videoID string) (url.Values, error) {
 	return v, nil
 }
 
-func printVideoInfo(videoID string, r *PlayerMicroformatRenderer, f *AdaptiveFormat) {
+func printVideoInfo(videoID string, r *PlayerMicroformatRenderer, f *Format) {
 	videoURL := "https://www.youtube.com/watch?v=" + videoID
 	fmt.Printf("Channel: %s (%s)\n", r.OwnerChannelName, r.OwnerProfileURL)
 	fmt.Printf("Title: %s (%s)\n", r.Title.SimpleText, videoURL)
@@ -86,10 +92,9 @@ func printVideoInfo(videoID string, r *PlayerMicroformatRenderer, f *AdaptiveFor
 	fmt.Printf("Length: %ss\n", r.LengthSeconds)
 	fmt.Printf("View Count: %s views\n", r.ViewCount)
 	fmt.Printf("Mime Type: %s\n", f.MimeType)
-	fmt.Printf("FPS: %dfps\n", f.Fps)
 	fmt.Printf("Size: %dx%d\n", f.Width, f.Height)
 	fmt.Printf("Quality: %s\n", f.Quality)
-	fmt.Printf("Average Bitrate: %d bps\n", f.AverageBitrate)
+	fmt.Printf("Bitrate: %d bps\n", f.Bitrate)
 }
 
 func findExtention(s string) string {
@@ -118,9 +123,9 @@ func run() error {
 		return err
 	}
 
-	var highestQuality AdaptiveFormat
-	for _, v := range p.StreamingData.AdaptiveFormats {
-		if v.AverageBitrate > highestQuality.AverageBitrate {
+	var highestQuality Format
+	for _, v := range p.StreamingData.Formats {
+		if v.Bitrate > highestQuality.Bitrate {
 			highestQuality = v
 		}
 	}
