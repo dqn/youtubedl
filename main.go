@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+const mb = 1 << 20
+
 type PlayerResponse struct {
 	StreamingData StreamingData `json:"streamingData"`
 	Microformat   Microformat   `json:"microformat"`
@@ -59,6 +61,25 @@ type Microformat struct {
 	PlayerMicroformatRenderer PlayerMicroformatRenderer `json:"playerMicroformatRenderer"`
 }
 
+type Progress struct {
+	numerator   int64
+	denominator int64
+}
+
+func (p *Progress) Write(b []byte) (int, error) {
+	n := len(b)
+	p.numerator += int64(n)
+
+	fmt.Printf("\r%s", strings.Repeat(" ", 35))
+	fmt.Printf("\rdownloading... %.1f", float64(p.numerator)/mb)
+	if p.denominator > 0 {
+		fmt.Printf("/%.1f", float64(p.denominator)/mb)
+	}
+	fmt.Print(" MB")
+
+	return n, nil
+}
+
 func usage() {
 	fmt.Println("Usage: youtubedl <video id>")
 }
@@ -101,6 +122,29 @@ func findExtention(s string) string {
 	return s[strings.Index(s, "/")+1 : strings.Index(s, ";")]
 }
 
+func download(u, dest string) error {
+	resp, err := http.Get(u)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	f, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := &Progress{denominator: resp.ContentLength}
+	_, err = io.Copy(f, io.TeeReader(resp.Body, w))
+	fmt.Println()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func run() error {
 	if len(os.Args) != 2 {
 		usage()
@@ -130,25 +174,13 @@ func run() error {
 		}
 	}
 
-	printVideoInfo(videoID, &p.Microformat.PlayerMicroformatRenderer, &highestQuality)
+	pmr := p.Microformat.PlayerMicroformatRenderer
+	printVideoInfo(videoID, &pmr, &highestQuality)
 	fmt.Println()
-	fmt.Println("downloading...")
-
-	resp, err := http.Get(highestQuality.URL)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
 
 	ext := findExtention(highestQuality.MimeType)
-	dst := fmt.Sprintf("%s.%s", p.Microformat.PlayerMicroformatRenderer.Title.SimpleText, ext)
-	f, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	if _, err := io.Copy(f, resp.Body); err != nil {
+	dest := fmt.Sprintf("%s.%s", pmr.Title.SimpleText, ext)
+	if err := download(highestQuality.URL, dest); err != nil {
 		return err
 	}
 
