@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -19,23 +20,18 @@ type PlayerResponse struct {
 }
 
 type Format struct {
-	URL      string `json:"url"`
-	MimeType string `json:"mimeType"`
-	Width    int    `json:"width"`
-	Height   int    `json:"height"`
-	Quality  string `json:"quality"`
-	Bitrate  int    `json:"bitrate"`
-}
-
-type AdaptiveFormat struct {
-	Format
-	Fps            int `json:"fps"`
-	AverageBitrate int `json:"averageBitrate"`
+	URL          string `json:"url"`
+	MimeType     string `json:"mimeType"`
+	Width        int    `json:"width"`
+	Height       int    `json:"height"`
+	Quality      string `json:"quality"`
+	Bitrate      int    `json:"bitrate"`
+	AudioQuality string `json:"audioQuality"`
 }
 
 type StreamingData struct {
-	Formats         []Format         `json:"formats"`
-	AdaptiveFormats []AdaptiveFormat `json:"adaptiveFormats"`
+	Formats         []Format `json:"formats"`
+	AdaptiveFormats []Format `json:"adaptiveFormats"`
 }
 
 type Title struct {
@@ -61,7 +57,11 @@ type Microformat struct {
 }
 
 func usage() {
-	fmt.Println("Usage: youtubedl <video id>")
+	fmt.Println("Usage:")
+	fmt.Println("  youtubedl <video id> [options]")
+	fmt.Println("Options:")
+	fmt.Println("  -m: Download as music")
+	os.Exit(2)
 }
 
 func getVideoInfo(videoID string) (url.Values, error) {
@@ -85,7 +85,7 @@ func getVideoInfo(videoID string) (url.Values, error) {
 	return v, nil
 }
 
-func printVideoInfo(videoID string, r *PlayerMicroformatRenderer, f *Format) {
+func printCommonInfo(videoID string, r *PlayerMicroformatRenderer, f *Format) {
 	videoURL := "https://www.youtube.com/watch?v=" + videoID
 	fmt.Printf("Channel: %s (%s)\n", r.OwnerChannelName, r.OwnerProfileURL)
 	fmt.Printf("Title: %s (%s)\n", r.Title.SimpleText, videoURL)
@@ -93,6 +93,14 @@ func printVideoInfo(videoID string, r *PlayerMicroformatRenderer, f *Format) {
 	fmt.Printf("Length: %ss\n", r.LengthSeconds)
 	fmt.Printf("View Count: %s views\n", r.ViewCount)
 	fmt.Printf("Mime Type: %s\n", f.MimeType)
+}
+
+func printMusicInfo(videoID string, r *PlayerMicroformatRenderer, f *Format) {
+	printCommonInfo(videoID, r, f)
+}
+
+func printVideoInfo(videoID string, r *PlayerMicroformatRenderer, f *Format) {
+	printCommonInfo(videoID, r, f)
 	fmt.Printf("Size: %dx%d\n", f.Width, f.Height)
 	fmt.Printf("Quality: %s\n", f.Quality)
 	fmt.Printf("Bitrate: %d bps\n", f.Bitrate)
@@ -103,12 +111,25 @@ func findExtention(s string) string {
 }
 
 func run() error {
-	if len(os.Args) != 2 {
+	flag.Parse()
+
+	var (
+		videoID string
+		music   bool
+	)
+	switch flag.NArg() {
+	case 1:
+		videoID = flag.Arg(0)
+	case 2:
+		videoID = flag.Arg(0)
+		if flag.Arg(1) != "-m" {
+			usage()
+		}
+		music = true
+	default:
 		usage()
-		os.Exit(2)
 	}
 
-	videoID := os.Args[1]
 	v, err := getVideoInfo(videoID)
 	if err != nil {
 		return err
@@ -124,20 +145,30 @@ func run() error {
 		return err
 	}
 
-	var highestQuality Format
-	for _, v := range p.StreamingData.Formats {
-		if v.Bitrate > highestQuality.Bitrate {
-			highestQuality = v
-		}
-	}
-
 	pmr := p.Microformat.PlayerMicroformatRenderer
-	printVideoInfo(videoID, &pmr, &highestQuality)
+	var highestQuality Format
+	if music {
+		for _, v := range p.StreamingData.AdaptiveFormats {
+			if v.AudioQuality == "" {
+				continue
+			}
+			if v.Bitrate > highestQuality.Bitrate {
+				highestQuality = v
+			}
+		}
+		printMusicInfo(videoID, &pmr, &highestQuality)
+	} else {
+		for _, v := range p.StreamingData.Formats {
+			if v.Bitrate > highestQuality.Bitrate {
+				highestQuality = v
+			}
+		}
+		printVideoInfo(videoID, &pmr, &highestQuality)
+	}
 	fmt.Println()
 
 	ext := findExtention(highestQuality.MimeType)
 	dest := fmt.Sprintf("%s.%s", strings.ReplaceAll(pmr.Title.SimpleText, "/", "-"), ext)
-
 	if err := godl.Download(highestQuality.URL, dest, true); err != nil {
 		return err
 	}
