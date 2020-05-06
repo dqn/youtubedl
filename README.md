@@ -1,6 +1,6 @@
 # youtubedl
 
-YouTube video downloader
+YouTube video and music downloader
 
 ## Installation
 
@@ -11,8 +11,13 @@ $ go get github.com/dqn/youtubedl
 ## Usage
 
 ```bash
-$ youtubedl <video id>
+$ youtubedl <video id> [options]
 ```
+
+Options:
+- `-m`: Download as music
+
+example:
 
 ```bash
 $ youtubedl UquPv9WpuB4
