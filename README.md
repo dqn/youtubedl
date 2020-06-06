@@ -1,6 +1,6 @@
 # youtubedl
 
-YouTube video and music downloader
+Download videos and music from YouTube.
 
 ## Installation
 
@@ -11,18 +11,19 @@ $ go get github.com/dqn/youtubedl
 ## Usage
 
 ```bash
-$ youtubedl <video id> [options]
+$ youtubedl [options] <video-id>
 ```
 
 Options:
-- `-m`: Download as music
+
+- `-m`: Download music only
 
 example:
 
 ```bash
-$ youtubedl UquPv9WpuB4
-Channel: cosMo@暴走P Official Channel (http://www.youtube.com/user/cosmobsp)
-Title: [Official] R.I.P.ゴシップの海 / cosMo＠暴走P feat. GUMI (https://www.youtube.com/watch?v=UquPv9WpuB4)
+$ youtubedl <video-id>
+Channel: XXXXXXXXXX (http://www.youtube.com/XXXXX/XXXXX)
+Title: XXXXXXXXXXXXXXXXXXXX (https://www.youtube.com/watch?v=XXXXX)
 Published: 2015-11-01
 Length: 222s
 View Count: 8397018 views
