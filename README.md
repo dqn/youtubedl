@@ -35,3 +35,7 @@ Bitrate: 720267 bps
 downloading... 18.98/18.98 MB
 completed!
 ```
+
+## License
+
+MIT
