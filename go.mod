@@ -1,6 +1,6 @@
 module github.com/dqn/youtubedl
 
-go 1.14
+go 1.19
 
 require (
 	github.com/dqn/godl v0.0.0-20200504151700-c4604ccd729b
